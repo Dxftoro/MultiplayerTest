@@ -19,10 +19,4 @@ public:
 };
 
 template <typename T>
-struct is_packet : std::false_type {};
-
-template <PacketType Type>
-struct is_packet<Packet<Type>> : std::true_type {};
-
-template <typename T>
-concept PacketOne = is_packet<T>::value;
+concept PacketOne = std::is_base_of_v<Packet<T::sGetType()>, T>;

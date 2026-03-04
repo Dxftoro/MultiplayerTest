@@ -11,6 +11,7 @@
 
 #include "maindef.h"
 #include "network.h"
+#include "packet_types.h"
 #include "components.h"
 #include "glsl_program.h"
 
@@ -91,7 +92,7 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	timePoint beg = std::chrono::system_clock::now();
+	timePoint beg = std::chrono::steady_clock::now();
 	timePoint end;
 
 	int fpsLimit = 70;
@@ -105,16 +106,18 @@ int main() {
 	auto characterView = world.view<CompCharacter>();
 
 	while (!glfwWindowShouldClose(window)) {
-		end = std::chrono::system_clock::now();
+		end = std::chrono::steady_clock::now();
 		timePoint frameEnd = end + std::chrono::milliseconds(1000 / fpsLimit);
 		std::chrono::duration<float> elapsedTime = end - beg;
 		beg = end;
 
 		network.poll();
 		messageBuffer->each<[](NetworkMessage& message, void* data) {
-			char* text = (char*)message.getPacket().getData();
-			size_t size = message.getPacket().getDataSize();
-			std::println("Message: \"{0}\", size: {1}", text, size);
+			//char* text = (char*)message.getPacket().getData();
+			//size_t size = message.getPacket().getDataSize();
+			//std::println("Message: \"{0}\", size: {1}", text, size);
+
+			
 		}>();
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);

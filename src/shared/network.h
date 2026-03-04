@@ -42,6 +42,9 @@ public:
 
 	void* getData() const { return this->instance->data; }
 	size_t getDataSize() const { return this->instance->dataLength; }
+
+	template <PacketOne T>
+	T* data() const { return (T*)getData(); }
 };
 
 class NetworkMessage {
@@ -135,10 +138,10 @@ public:
 	void poll();
 
 	template <PacketOne T>
-	void send(const T& data) { send((const char*)data, sizeof(T)); }
+	void send(const T& data) { send((const char*)&data, sizeof(T)); }
 
 	template <PacketOne T>
-	void sendTo(const NetworkPeer& peer, const T& data) { sendTo(peer, (const char*)data), sizeof(T); }
+	void sendTo(const NetworkPeer& peer, const T& data) { sendTo(peer, (const char*)&data, sizeof(T)) }
 
 	void setContext(void* context) { messageBuffer->context = context; }
 	void onConnectReceived(ConnectionCallback onConnect) { this->onConnect = onConnect; }

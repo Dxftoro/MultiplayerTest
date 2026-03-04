@@ -113,7 +113,7 @@ void clientConnected(Network* network, NetworkPeer peer, void* data) {
 	context->clients[newClient.getId()].setPlayer(player);
 	
 	ServerHelloPacket serverHello(newClient.getId());
-	network->sendTo(peer, "Hello!", 16);
+	network->sendTo(peer, serverHello);
 }
 
 void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
