@@ -141,7 +141,7 @@ public:
 	void send(const T& data) { send((const char*)&data, sizeof(T)); }
 
 	template <PacketOne T>
-	void sendTo(const NetworkPeer& peer, const T& data) { sendTo(peer, (const char*)&data, sizeof(T)) }
+	void sendTo(const NetworkPeer& peer, const T& data) { sendTo(peer, (const char*)&data, sizeof(T)); }
 
 	void setContext(void* context) { messageBuffer->context = context; }
 	void onConnectReceived(ConnectionCallback onConnect) { this->onConnect = onConnect; }

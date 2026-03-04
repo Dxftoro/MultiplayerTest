@@ -55,7 +55,7 @@ public:
 
 	constexpr id_t capacity() const { return Size; }
 	id_t size() const { return Size - freeIndicies.size(); }
-	id_t getLastFree() const { return freeIndicies.back(); }
+	id_t getLastFree() const { return freeIndicies.front(); }
 
 	inline ClientData& operator[](id_t id) { return get(id); }
 };
@@ -69,7 +69,8 @@ ClientStorage<Size>::ClientStorage() {
 
 template <id_t Size>
 const ClientData& ClientStorage<Size>::add(const ClientData& clientData) {
-	id_t index = freeIndicies.back();
+	id_t index = freeIndicies.front();
+	std::println("New client id: {}", index);
 
 	clients[index] = clientData;
 	clients[index].setId(index);

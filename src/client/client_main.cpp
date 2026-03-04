@@ -117,7 +117,8 @@ int main() {
 			//size_t size = message.getPacket().getDataSize();
 			//std::println("Message: \"{0}\", size: {1}", text, size);
 
-			
+			ServerHelloPacket* hello = message.getPacket().data<ServerHelloPacket>();
+			std::println("Received server hello ({0}), id: {1}", (uint8_t)hello->getType(), hello->getClientId());
 		}>();
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
