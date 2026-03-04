@@ -3,6 +3,8 @@
 #include <array>
 #include <enet/enet.h>
 
+#include "packet_base.h"
+
 class NetworkException : public std::runtime_error {
 public:
 	using std::runtime_error::runtime_error;
@@ -131,6 +133,12 @@ public:
 	void sendTo(NetworkPeer peer, const char* data, size_t size);
 	void disconnect();
 	void poll();
+
+	template <PacketOne T>
+	void send(const T& data) { send((const char*)data, sizeof(T)); }
+
+	template <PacketOne T>
+	void sendTo(const NetworkPeer& peer, const T& data) { sendTo(peer, (const char*)data), sizeof(T); }
 
 	void setContext(void* context) { messageBuffer->context = context; }
 	void onConnectReceived(ConnectionCallback onConnect) { this->onConnect = onConnect; }

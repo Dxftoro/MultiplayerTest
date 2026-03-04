@@ -2,10 +2,8 @@
 #include <glm/glm.hpp>
 #include <entt.hpp>
 
+#include "maindef.h"
 #include "network.h"
-
-#define NULL_CLIENT		UINT32_MAX
-using id_t = uint32_t;
 
 struct CompCharacter {
 	static constexpr float speed = 1.0f;

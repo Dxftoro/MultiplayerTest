@@ -12,11 +12,10 @@
 #include <entt.hpp>
 
 #include "network.h"
+#include "packet_types.h"
 #include "components.h"
 
 #define SERVER_SIZE		10
-
-using timePoint = std::chrono::time_point<std::chrono::steady_clock>;
 
 template <id_t Size> class ClientStorage;
 using DefaultClientStorage = ClientStorage<SERVER_SIZE>;
@@ -113,6 +112,7 @@ void clientConnected(Network* network, NetworkPeer peer, void* data) {
 	entt::entity player = createPlayer(world, { 0.0f, 0.0f }, newClient.getId());
 	context->clients[newClient.getId()].setPlayer(player);
 	
+	ServerHelloPacket serverHello(newClient.getId());
 	network->sendTo(peer, "Hello!", 16);
 }
 

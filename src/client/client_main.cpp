@@ -9,14 +9,13 @@
 #include <glm/glm.hpp>
 #include <entt.hpp>
 
-#include "glsl_program.h"
-#include "components.h"
+#include "maindef.h"
 #include "network.h"
+#include "components.h"
+#include "glsl_program.h"
 
 #define S_WIDTH 480
 #define S_HEIGHT 480
-
-using timePoint = std::chrono::time_point<std::chrono::system_clock>;
 
 float verticies[] = {
 	-1.0f, 1.0f,
