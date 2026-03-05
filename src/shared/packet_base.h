@@ -3,8 +3,8 @@
 #include <type_traits>
 
 enum class PacketType : uint8_t {
-	SERVER_HELLO,
-	TEST
+	UNKNOWN,
+	SERVER_HELLO
 };
 
 template <PacketType Type>

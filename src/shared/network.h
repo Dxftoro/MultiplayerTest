@@ -42,6 +42,7 @@ public:
 
 	void* getData() const { return this->instance->data; }
 	size_t getDataSize() const { return this->instance->dataLength; }
+	PacketType getDataType() const { return (PacketType)((uint8_t*)this->instance->data)[0]; }
 
 	template <PacketOne T>
 	T* data() const { return (T*)getData(); }

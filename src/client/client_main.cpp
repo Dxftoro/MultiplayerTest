@@ -31,9 +31,21 @@ entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position) {
 	return entity;
 }
 
+struct NetworkContext {
+	Network* network;
+	id_t id;
+	entt::registry world;
+};
+
 int main() {
 	Network network;
 	NetworkMessageBuffer* messageBuffer = network.getMessageBuffer();
+	
+	NetworkContext context = {
+		.network	= &network,
+		.id			= NULL_CLIENT
+	};
+	network.setContext(&context);
 
 	if (!glfwInit()) { return -2; }
 
@@ -98,12 +110,7 @@ int main() {
 	int fpsLimit = 70;
 	float frameDuration = 1000.0f / fpsLimit;
 
-	entt::registry world;
-	spawnCharacter(world, { S_WIDTH / 2.0f, S_HEIGHT / 2.0f });
-	spawnCharacter(world, { 100.0f, S_HEIGHT / 2.0f });
-	spawnCharacter(world, { S_WIDTH / 2.0f, 100.0f });
-
-	auto characterView = world.view<CompCharacter>();
+	auto characterView = context.world.view<CompCharacter>();
 
 	while (!glfwWindowShouldClose(window)) {
 		end = std::chrono::steady_clock::now();
@@ -113,12 +120,26 @@ int main() {
 
 		network.poll();
 		messageBuffer->each<[](NetworkMessage& message, void* data) {
-			//char* text = (char*)message.getPacket().getData();
-			//size_t size = message.getPacket().getDataSize();
-			//std::println("Message: \"{0}\", size: {1}", text, size);
+			NetworkContext* context = (NetworkContext*)data;
+			UnknownPacket* packet = message.getPacket().data<UnknownPacket>();
 
-			ServerHelloPacket* hello = message.getPacket().data<ServerHelloPacket>();
-			std::println("Received server hello ({0}), id: {1}", (uint8_t)hello->getType(), hello->getClientId());
+			switch (packet->getType()) {
+			case PacketType::SERVER_HELLO: {
+				ServerHelloPacket* hello = (ServerHelloPacket*)packet;
+				
+				std::println(
+					"Received server hello ({0}), id: {1}",
+					(uint8_t)hello->getType(),
+					hello->getClientId());
+				
+				context->id = hello->getClientId();
+				break;
+			}
+			default:
+				std::println("Unexpected packet type!");
+				break;
+			}
+
 		}>();
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);

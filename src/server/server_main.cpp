@@ -122,7 +122,7 @@ void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
 	ClientData* clientData = (ClientData*)peer.getData();
 
 	std::println("Going to remove {0}", clientData->getId());
-	context->clients.remove(((ClientData*)peer.getData())->getId());
+	context->clients.remove(clientData->getId());
 	peer.invalidate();
 
 	id_t size = context->clients.size();
