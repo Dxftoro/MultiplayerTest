@@ -95,6 +95,60 @@ struct NetworkContext {
 	entt::registry world;
 };
 
+template <id_t ServerSize>
+class SnapshotBuffer {
+private:
+	char* buffer;
+	SnapshotObject* objects;
+	id_t current;
+
+	SnapshotBuffer(const SnapshotBuffer&) = delete;
+	SnapshotBuffer(SnapshotBuffer&&) = delete;
+
+public:
+	SnapshotBuffer();
+	~SnapshotBuffer();
+
+	static constexpr id_t size() { return ServerSize; }
+
+	void setHeader(const ServerSnapshotHeader& header);
+	void add(const SnapshotObject& object);
+	
+	char* getData() const { return buffer; }
+	const ServerSnapshotHeader* getHeader() const { return (ServerSnapshotHeader*)buffer; }
+	SnapshotObject* get(id_t index) const;
+
+	inline SnapshotObject* operator[](id_t index) const { return get(index); }
+};
+
+template <id_t ServerSize>
+SnapshotBuffer<ServerSize>::SnapshotBuffer() : current(0) {
+	buffer = new char[sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * ServerSize];
+	objects = (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader));
+}
+
+template <id_t ServerSize>
+SnapshotBuffer<ServerSize>::~SnapshotBuffer() {
+	delete[] buffer;
+}
+
+template <id_t ServerSize>
+void SnapshotBuffer<ServerSize>::setHeader(const ServerSnapshotHeader& header) {
+	memcpy(buffer, &header, sizeof(header));
+}
+
+template <id_t ServerSize>
+void SnapshotBuffer<ServerSize>::add(const SnapshotObject& object) {
+	if (current >= ServerSize) throw std::runtime_error("SnapshotBuffer index out of bounds!");
+	objects[current] = object;
+	current++;
+}
+
+template <id_t ServerSize>
+SnapshotObject* SnapshotBuffer<ServerSize>::get(id_t index) const {
+	return objects + index;
+}
+
 entt::entity createPlayer(entt::registry& world, const glm::vec2& position, id_t id) {
 	entt::entity player = world.create();
 	world.emplace<CompNetworkId>(player).id = id;

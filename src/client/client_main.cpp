@@ -33,7 +33,7 @@ entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position) {
 
 struct NetworkContext {
 	Network* network;
-	id_t id;
+	id_t localId;
 	entt::registry world;
 };
 
@@ -43,7 +43,7 @@ int main() {
 	
 	NetworkContext context = {
 		.network	= &network,
-		.id			= NULL_CLIENT
+		.localId	= NULL_CLIENT
 	};
 	network.setContext(&context);
 
@@ -132,7 +132,7 @@ int main() {
 					(uint8_t)hello->getType(),
 					hello->getClientId());
 				
-				context->id = hello->getClientId();
+				context->localId = hello->getClientId();
 				break;
 			}
 			default:

@@ -17,6 +17,15 @@ struct CompNetworkId {
 	bool isLocal = false;
 };
 
+struct SnapshotObject {
+	id_t id;
+	glm::vec2 position;
+	CompCharacter::State state;
+
+	SnapshotObject(id_t _id, const glm::vec2& _position, CompCharacter::State _state)
+		: id(_id), position(_position), state(_state) {}
+};
+
 void characterMovementSystem(entt::registry& world, float deltaTime) {
 	auto characterView = world.view<CompCharacter>();
 	static float acceleration = 1.1f;

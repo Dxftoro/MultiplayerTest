@@ -18,3 +18,14 @@ public:
 
 	id_t getClientId() const { return clientId; }
 };
+
+class ServerSnapshotHeader : public Packet<PacketType::SERVER_SNAPSHOT_HEADER> {
+private:
+	id_t snapshotSize;
+
+public:
+	ServerSnapshotHeader() : snapshotSize(0) {}
+	ServerSnapshotHeader(id_t _snapshotSize) : snapshotSize(_snapshotSize) {}
+
+	id_t getSnapshotSize() const { return snapshotSize; }
+};
