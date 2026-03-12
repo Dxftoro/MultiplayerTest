@@ -19,6 +19,7 @@
 
 template <id_t Size> class ClientStorage;
 using DefaultClientStorage = ClientStorage<SERVER_SIZE>;
+using DefaultSnapshotBuffer = SnapshotBuffer<SERVER_SIZE>;
 
 class ClientData {
 private:
@@ -92,62 +93,9 @@ void ClientStorage<Size>::remove(id_t id) {
 
 struct NetworkContext {
 	DefaultClientStorage clients;
+	DefaultSnapshotBuffer snapshotBuffer;
 	entt::registry world;
 };
-
-template <id_t ServerSize>
-class SnapshotBuffer {
-private:
-	char* buffer;
-	SnapshotObject* objects;
-	id_t current;
-
-	SnapshotBuffer(const SnapshotBuffer&) = delete;
-	SnapshotBuffer(SnapshotBuffer&&) = delete;
-
-public:
-	SnapshotBuffer();
-	~SnapshotBuffer();
-
-	static constexpr id_t size() { return ServerSize; }
-
-	void setHeader(const ServerSnapshotHeader& header);
-	void add(const SnapshotObject& object);
-	
-	char* getData() const { return buffer; }
-	const ServerSnapshotHeader* getHeader() const { return (ServerSnapshotHeader*)buffer; }
-	SnapshotObject* get(id_t index) const;
-
-	inline SnapshotObject* operator[](id_t index) const { return get(index); }
-};
-
-template <id_t ServerSize>
-SnapshotBuffer<ServerSize>::SnapshotBuffer() : current(0) {
-	buffer = new char[sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * ServerSize];
-	objects = (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader));
-}
-
-template <id_t ServerSize>
-SnapshotBuffer<ServerSize>::~SnapshotBuffer() {
-	delete[] buffer;
-}
-
-template <id_t ServerSize>
-void SnapshotBuffer<ServerSize>::setHeader(const ServerSnapshotHeader& header) {
-	memcpy(buffer, &header, sizeof(header));
-}
-
-template <id_t ServerSize>
-void SnapshotBuffer<ServerSize>::add(const SnapshotObject& object) {
-	if (current >= ServerSize) throw std::runtime_error("SnapshotBuffer index out of bounds!");
-	objects[current] = object;
-	current++;
-}
-
-template <id_t ServerSize>
-SnapshotObject* SnapshotBuffer<ServerSize>::get(id_t index) const {
-	return objects + index;
-}
 
 entt::entity createPlayer(entt::registry& world, const glm::vec2& position, id_t id) {
 	entt::entity player = world.create();
@@ -174,13 +122,38 @@ void clientConnected(Network* network, NetworkPeer peer, void* data) {
 void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
 	NetworkContext* context = (NetworkContext*)data;
 	ClientData* clientData = (ClientData*)peer.getData();
+	id_t clientId = clientData->getId();
 
-	std::println("Going to remove {0}", clientData->getId());
-	context->clients.remove(clientData->getId());
+	context->clients.remove(clientId);
 	peer.invalidate();
 
 	id_t size = context->clients.size();
-	std::println("Client disconnected! Server size: {}", size);
+	std::println("Client [{0}] disconnected! Server size: {1}", clientId, size);
+}
+
+void snapshotMergeSystem(NetworkContext& context) {
+	ServerSnapshotHeader snapshotHeader(context.clients.size());
+	context.snapshotBuffer.setHeader(snapshotHeader);
+	context.snapshotBuffer.reset();
+
+	context.world.view<CompNetworkId, CompCharacter>()
+	.each([&context](entt::entity, CompNetworkId& networkId, CompCharacter& character) {
+		if (!character.dirty) return;
+		character.dirty = false;
+
+		SnapshotObject object(networkId.id, character.position, (CompCharacter::State)character.state);
+		context.snapshotBuffer.add(object);
+	});
+}
+
+void sendSnapshot(Network& network, NetworkContext& context) {
+	for (id_t i = 0; i < context.clients.size(); i++) {
+		if (context.clients[i].isNull()) continue;
+		network.sendTo(
+			context.clients[i].getPeer(),
+			context.snapshotBuffer.getData(),
+			context.snapshotBuffer.sizeBytes());
+	}
 }
 
 int main() {
@@ -219,10 +192,16 @@ int main() {
 		accumulator += elapsedTime.count();
 		while (accumulator >= tickTime) {
 			accumulator -= tickTime;
-			//std::println("Do something...");
+
+			snapshotMergeSystem(context);
+			if (context.snapshotBuffer.size()) {
+				std::println("Something happened! Sending snapshot. Size: {}", 
+					context.snapshotBuffer.size());
+				sendSnapshot(network, context);
+			}
 		}
 
-		//std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
 	return 0;

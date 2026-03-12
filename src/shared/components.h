@@ -4,12 +4,15 @@
 
 #include "maindef.h"
 #include "network.h"
+#include "snapshot_buffer.h"
 
 struct CompCharacter {
 	static constexpr float speed = 1.0f;
 
-	glm::vec2 position, velocity, direction;
+	//glm::vec2 position, velocity, direction;
+	glm::vec2 position;
 	enum State { IDLE, MOVING } state;
+	bool dirty = true;
 };
 
 struct CompNetworkId {
@@ -17,31 +20,22 @@ struct CompNetworkId {
 	bool isLocal = false;
 };
 
-struct SnapshotObject {
-	id_t id;
-	glm::vec2 position;
-	CompCharacter::State state;
-
-	SnapshotObject(id_t _id, const glm::vec2& _position, CompCharacter::State _state)
-		: id(_id), position(_position), state(_state) {}
-};
-
-void characterMovementSystem(entt::registry& world, float deltaTime) {
-	auto characterView = world.view<CompCharacter>();
-	static float acceleration = 1.1f;
-
-	characterView.each([deltaTime](entt::entity entity, CompCharacter& character) {
-		if (character.state == CompCharacter::State::MOVING) {
-			character.velocity += (character.direction * CompCharacter::speed - character.velocity)
-				* acceleration * deltaTime;
-		}
-		else if (character.state == CompCharacter::State::IDLE) {
-			character.velocity -= character.velocity * acceleration * deltaTime;
-		}
-
-		character.position += character.velocity * deltaTime;
-	});
-}
+//void characterMovementSystem(entt::registry& world, float deltaTime) {
+//	auto characterView = world.view<CompCharacter>();
+//	static float acceleration = 1.1f;
+//
+//	characterView.each([deltaTime](entt::entity entity, CompCharacter& character) {
+//		if (character.state == CompCharacter::State::MOVING) {
+//			character.velocity += (character.direction * CompCharacter::speed - character.velocity)
+//				* acceleration * deltaTime;
+//		}
+//		else if (character.state == CompCharacter::State::IDLE) {
+//			character.velocity -= character.velocity * acceleration * deltaTime;
+//		}
+//
+//		character.position += character.velocity * deltaTime;
+//	});
+//}
 
 void characterSyncSystem(entt::registry& world, const Network& network, float deltaTime) {
 
