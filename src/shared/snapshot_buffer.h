@@ -25,8 +25,8 @@ private:
 	SnapshotObject* getFirstObject() const { return (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader)); }
 
 public:
-	SnapshotBuffer();
-	SnapshotBuffer(char* buffer);
+	explicit SnapshotBuffer();
+	explicit SnapshotBuffer(char* buffer);
 	~SnapshotBuffer();
 
 	static constexpr id_t capacity() { return ServerSize; }
@@ -37,6 +37,7 @@ public:
 	void setHeader(const ServerSnapshotHeader& header);
 	void add(const SnapshotObject& object);
 	void reset() { current = 0; }
+	void invalidate();
 
 	char* getData() const { return buffer; }
 	const ServerSnapshotHeader* getHeader() const { return (ServerSnapshotHeader*)buffer; }
@@ -62,8 +63,9 @@ SnapshotBuffer<ServerSize>::SnapshotBuffer() : current(0) {
 }
 
 template <id_t ServerSize>
-SnapshotBuffer<ServerSize>::SnapshotBuffer(char* _buffer)
-	: current(0), buffer(_buffer) {
+SnapshotBuffer<ServerSize>::SnapshotBuffer(char* _buffer) : buffer(_buffer) {
+	current = getHeader()->getSnapshotSize();
+	std::println("Received snapshot. Size: {}", current);
 	objects = getFirstObject();
 }
 
@@ -82,6 +84,12 @@ void SnapshotBuffer<ServerSize>::add(const SnapshotObject& object) {
 	if (current >= ServerSize) throw std::runtime_error("SnapshotBuffer index out of bounds!");
 	objects[current] = object;
 	current++;
+}
+
+template <id_t ServerSize>
+void SnapshotBuffer<ServerSize>::invalidate() {
+	buffer = nullptr;
+	objects = nullptr;
 }
 
 template <id_t ServerSize>

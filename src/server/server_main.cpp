@@ -1,7 +1,5 @@
 #include <iostream>
 #include <print>
-#include <array>
-#include <queue>
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -14,82 +12,12 @@
 #include "network.h"
 #include "packet_types.h"
 #include "components.h"
+#include "client_storage.h"
 
 #define SERVER_SIZE		10
 
-template <id_t Size> class ClientStorage;
 using DefaultClientStorage = ClientStorage<SERVER_SIZE>;
 using DefaultSnapshotBuffer = SnapshotBuffer<SERVER_SIZE>;
-
-class ClientData {
-private:
-	id_t id;
-	NetworkPeer peer;
-	entt::entity player;
-
-public:
-	ClientData() : id(NULL_CLIENT), peer(nullptr), player(entt::null) {}
-	explicit ClientData(NetworkPeer _peer) : id(NULL_CLIENT), peer(_peer), player(entt::null) {}
-
-	void setId(id_t id) { this->id = id; }
-	void setPlayer(entt::entity player) { this->player = player; }
-
-	NetworkPeer getPeer() const { return peer; }
-	id_t getId() const { return id; }
-	entt::entity getPlayer() const { return player; }
-
-	bool isNull() const { return getId() == NULL_CLIENT; }
-};
-
-template <id_t Size>
-class ClientStorage {
-private:
-	std::array<ClientData, Size> clients;
-	std::queue<id_t> freeIndicies;
-
-public:
-	ClientStorage();
-
-	const ClientData& add(const ClientData& clientData);
-	ClientData& get(id_t id);
-	void remove(id_t id);
-
-	constexpr id_t capacity() const { return Size; }
-	id_t size() const { return Size - freeIndicies.size(); }
-	id_t getLastFree() const { return freeIndicies.front(); }
-
-	inline ClientData& operator[](id_t id) { return get(id); }
-};
-
-template <id_t Size>
-ClientStorage<Size>::ClientStorage() {
-	for (id_t i = 0; i < Size; i++) {
-		freeIndicies.push(i);
-	}
-}
-
-template <id_t Size>
-const ClientData& ClientStorage<Size>::add(const ClientData& clientData) {
-	id_t index = freeIndicies.front();
-	std::println("New client id: {}", index);
-
-	clients[index] = clientData;
-	clients[index].setId(index);
-	freeIndicies.pop();
-
-	return clients[index];
-}
-
-template <id_t Size>
-ClientData& ClientStorage<Size>::get(id_t id) {
-	return clients[id];
-}
-
-template <id_t Size>
-void ClientStorage<Size>::remove(id_t id) {
-	clients[id] = ClientData();
-	freeIndicies.push(id);
-}
 
 struct NetworkContext {
 	DefaultClientStorage clients;
@@ -112,10 +40,10 @@ void clientConnected(Network* network, NetworkPeer peer, void* data) {
 	std::println("Client connected! Server size: {}", context->clients.size());
 
 	entt::registry& world = context->world;
-	entt::entity player = createPlayer(world, { 0.0f, 0.0f }, newClient.getId());
+	entt::entity player = createPlayer(world, { 100.0f, 100.0f }, newClient.getId());
 	context->clients[newClient.getId()].setPlayer(player);
 	
-	ServerHelloPacket serverHello(newClient.getId());
+	ServerHelloPacket serverHello(newClient.getId(), SERVER_SIZE);
 	network->sendTo(peer, serverHello);
 }
 
@@ -134,7 +62,6 @@ void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
 void snapshotMergeSystem(NetworkContext& context) {
 	ServerSnapshotHeader snapshotHeader(context.clients.size());
 	context.snapshotBuffer.setHeader(snapshotHeader);
-	context.snapshotBuffer.reset();
 
 	context.world.view<CompNetworkId, CompCharacter>()
 	.each([&context](entt::entity, CompNetworkId& networkId, CompCharacter& character) {
@@ -194,10 +121,13 @@ int main() {
 			accumulator -= tickTime;
 
 			snapshotMergeSystem(context);
+			//std::println("Snapshot size: {}", context.snapshotBuffer.size());
+
 			if (context.snapshotBuffer.size()) {
-				std::println("Something happened! Sending snapshot. Size: {}", 
-					context.snapshotBuffer.size());
+				//std::println("Something happened! Sending snapshot. Size: {}", 
+				//	context.snapshotBuffer.size());
 				sendSnapshot(network, context);
+				context.snapshotBuffer.reset();
 			}
 		}
 

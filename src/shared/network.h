@@ -139,7 +139,7 @@ public:
 	void poll();
 
 	template <PacketOne T>
-	void broadcast(const T& data) { broadcast((const char*)&data, sizeof(T); }
+	void broadcast(const T& data) { broadcast((const char*)&data, sizeof(T)); }
 
 	template <PacketOne T>
 	void send(const T& data) { send((const char*)&data, sizeof(T)); }
