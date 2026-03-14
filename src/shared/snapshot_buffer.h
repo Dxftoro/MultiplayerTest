@@ -22,8 +22,11 @@ private:
 	SnapshotBuffer(const SnapshotBuffer&) = delete;
 	SnapshotBuffer(SnapshotBuffer&&) = delete;
 
+	SnapshotObject* getFirstObject() const { return (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader)); }
+
 public:
 	SnapshotBuffer();
+	SnapshotBuffer(char* buffer);
 	~SnapshotBuffer();
 
 	static constexpr id_t capacity() { return ServerSize; }
@@ -55,12 +58,18 @@ size_t SnapshotBuffer<ServerSize>::sizeBytes() const {
 template <id_t ServerSize>
 SnapshotBuffer<ServerSize>::SnapshotBuffer() : current(0) {
 	buffer = new char[capacityBytes()];
-	objects = (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader));
+	objects = getFirstObject();
+}
+
+template <id_t ServerSize>
+SnapshotBuffer<ServerSize>::SnapshotBuffer(char* _buffer)
+	: current(0), buffer(_buffer) {
+	objects = getFirstObject();
 }
 
 template <id_t ServerSize>
 SnapshotBuffer<ServerSize>::~SnapshotBuffer() {
-	delete[] buffer;
+	if (buffer) delete[] buffer;
 }
 
 template <id_t ServerSize>

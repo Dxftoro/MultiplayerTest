@@ -31,6 +31,8 @@ entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position) {
 	return entity;
 }
 
+void characterDrawSystem(entt::registry& world, )
+
 struct NetworkContext {
 	Network* network;
 	id_t localId;
@@ -139,7 +141,6 @@ int main() {
 				std::println("Unexpected packet type!");
 				break;
 			}
-
 		}>();
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
