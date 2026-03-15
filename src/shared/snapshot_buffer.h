@@ -38,6 +38,7 @@ public:
 	void add(const SnapshotObject& object);
 	void reset() { current = 0; }
 	void invalidate();
+	void dump();
 
 	char* getData() const { return buffer; }
 	const ServerSnapshotHeader* getHeader() const { return (ServerSnapshotHeader*)buffer; }
@@ -90,6 +91,15 @@ template <id_t ServerSize>
 void SnapshotBuffer<ServerSize>::invalidate() {
 	buffer = nullptr;
 	objects = nullptr;
+}
+
+template <id_t ServerSize>
+void SnapshotBuffer<ServerSize>::dump() {
+	std::println("Buffer size: {}", size());
+	for (id_t i = 0; i < size(); i++) {
+		id_t id = (objects + i)->id;
+		std::println("ID: {0}, {1} - {2}", id, NULL_CLIENT, (id == NULL_CLIENT));
+	}
 }
 
 template <id_t ServerSize>

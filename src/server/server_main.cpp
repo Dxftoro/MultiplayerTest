@@ -60,9 +60,6 @@ void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
 }
 
 void snapshotMergeSystem(NetworkContext& context) {
-	ServerSnapshotHeader snapshotHeader(context.clients.size());
-	context.snapshotBuffer.setHeader(snapshotHeader);
-
 	context.world.view<CompNetworkId, CompCharacter>()
 	.each([&context](entt::entity, CompNetworkId& networkId, CompCharacter& character) {
 		if (!character.dirty) return;
@@ -70,7 +67,12 @@ void snapshotMergeSystem(NetworkContext& context) {
 
 		SnapshotObject object(networkId.id, character.position, (CompCharacter::State)character.state);
 		context.snapshotBuffer.add(object);
+		std::println("Added object with ID: {}",
+			context.snapshotBuffer[context.snapshotBuffer.size() - 1]->id);
 	});
+
+	ServerSnapshotHeader snapshotHeader(context.snapshotBuffer.size());
+	context.snapshotBuffer.setHeader(snapshotHeader);
 }
 
 void sendSnapshot(Network& network, NetworkContext& context) {
@@ -124,6 +126,7 @@ int main() {
 			//std::println("Snapshot size: {}", context.snapshotBuffer.size());
 
 			if (context.snapshotBuffer.size()) {
+				context.snapshotBuffer.dump();
 				//std::println("Something happened! Sending snapshot. Size: {}", 
 				//	context.snapshotBuffer.size());
 				sendSnapshot(network, context);

@@ -51,7 +51,7 @@ class CharacterDrawSystem {
 private:
 	GLFWwindow* window;
 	vray::GlslProgram program;
-	vray::GlslUniform uProjectionMatrix, uPosition;
+	vray::GlslUniform uProjectionMatrix, uPosition, uColor;
 	glm::mat4 projection;
 	GLuint vao, vbo;
 	entt::registry& world;
@@ -86,14 +86,15 @@ CharacterDrawSystem::CharacterDrawSystem(GLFWwindow* _window, entt::registry& _w
 		program.compileShader("shaders/generic.frag", vray::ShaderType::FRAGMENT);
 		program.link();
 		program.validate();
+
+		uProjectionMatrix = program.getUniform("uProjectionMatrix");
+		uPosition = program.getUniform("uPosition");
+		uColor = program.getUniform("uColor");
 	}
 	catch (vray::GlslException exc) {
-		std::println("{}", exc.what());
+		std::println("{0} [{1}]", exc.what(), glGetError());
 		return;
 	}
-
-	uProjectionMatrix = program.getUniform("uProjectionMatrix");
-	uPosition = program.getUniform("uPosition");
 
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -128,6 +129,7 @@ void CharacterDrawSystem::update() {
 	glBindVertexArray(vao);
 	for (auto [entity, character, color] : characters.each()) {
 		program.setUniform(uPosition, glm::vec3(character.position, 0.0f));
+		program.setUniform(uColor, color.color);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 
@@ -136,20 +138,24 @@ void CharacterDrawSystem::update() {
 }
 
 void snapshotMergeSystem(DefaultSnapshotBuffer& buffer, NetworkContext* context) {
+	buffer.dump();
+
 	for (id_t i = 0; i < buffer.size(); i++) {
 		id_t id = buffer[i]->id;
 
 		if (context->clients[id].getId() == NULL_CLIENT) {
+			std::println("New");
 			context->clients[id].setId(id);
 			
 			entt::entity player = spawnCharacter(
-				context->world, 
+				context->world,
 				buffer[i]->position,
 				(id == context->localId ? COLOR_RED : COLOR_WHITE));
 			
 			context->clients[id].setPlayer(player);
 		}
 		else {
+			std::println("Updating old");
 			entt::entity player = context->clients[id].getPlayer();
 			CompCharacter& character = context->world.get<CompCharacter>(player);
 			character.position = buffer[i]->position;
