@@ -25,6 +25,10 @@ struct NetworkContext {
 	entt::registry world;
 };
 
+float frand(const float a, const float b) {
+	return a + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (b - a));
+}
+
 entt::entity createPlayer(entt::registry& world, const glm::vec2& position, id_t id) {
 	entt::entity player = world.create();
 	world.emplace<CompNetworkId>(player).id = id;
@@ -40,7 +44,7 @@ void clientConnected(Network* network, NetworkPeer peer, void* data) {
 	std::println("Client connected! Server size: {}", context->clients.size());
 
 	entt::registry& world = context->world;
-	entt::entity player = createPlayer(world, { 100.0f, 100.0f }, newClient.getId());
+	entt::entity player = createPlayer(world, { frand(1.0f, 300.0f), frand(1.0f, 300.0f) }, newClient.getId());
 	context->clients[newClient.getId()].setPlayer(player);
 	
 	ServerHelloPacket serverHello(newClient.getId(), SERVER_SIZE);
