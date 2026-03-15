@@ -41,3 +41,17 @@ target_link_libraries(client PRIVATE
 	glad
 	glfw
 )
+
+message("CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
+message("Looking for shaders at: ${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+    message(WARNING "Shaders directory does not exist!")
+else()
+    add_custom_command(TARGET client POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+            "$<TARGET_FILE_DIR:client>/shaders"
+        COMMENT "Copying scripts directory..."
+    )
+endif()

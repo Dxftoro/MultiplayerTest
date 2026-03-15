@@ -82,8 +82,8 @@ CharacterDrawSystem::CharacterDrawSystem(GLFWwindow* _window, entt::registry& _w
 	if (!gladLoadGL()) { return; }
 
 	try {
-		program.compileShader("generic.vert", vray::ShaderType::VERTEX);
-		program.compileShader("generic.frag", vray::ShaderType::FRAGMENT);
+		program.compileShader("shaders/generic.vert", vray::ShaderType::VERTEX);
+		program.compileShader("shaders/generic.frag", vray::ShaderType::FRAGMENT);
 		program.link();
 		program.validate();
 	}
