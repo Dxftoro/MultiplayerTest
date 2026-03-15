@@ -15,6 +15,10 @@ struct CompCharacter {
 	bool dirty = true;
 };
 
+struct CompColor {
+	glm::vec3 color;
+};
+
 struct CompNetworkId {
 	id_t id = NULL_CLIENT;
 	bool isLocal = false;

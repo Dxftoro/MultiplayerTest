@@ -20,8 +20,8 @@
 #define S_WIDTH			480
 #define S_HEIGHT		480
 #define SERVER_SIZE		10
-#define COLOR_WHITE		{1.0f, 1.0f, 1.0f}
-#define COLOR_RED		{1.0f, 0.0f, 0.0f}
+#define COLOR_WHITE		glm::vec3(1.0f, 1.0f, 1.0f)
+#define COLOR_RED		glm::vec3(1.0f, 0.0f, 0.0f)
 
 using DefaultSnapshotBuffer = SnapshotBuffer<SERVER_SIZE>;
 using DefaultClientStorage = ClientStorage<SERVER_SIZE>;
@@ -33,9 +33,10 @@ float verticies[] = {
 	1.0f, -1.0f
 };
 
-entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position) {
+entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position, const glm::vec3& color) {
 	entt::entity entity = world.create();
 	world.emplace<CompCharacter>(entity).position = position;
+	world.emplace<CompColor>(entity).color = color;
 	return entity;
 }
 
@@ -55,7 +56,7 @@ private:
 	GLuint vao, vbo;
 	entt::registry& world;
 
-	using CharacterView = decltype(world.view<CompCharacter>());
+	using CharacterView = decltype(world.view<CompCharacter, CompColor>());
 	CharacterView characters;
 	bool initialized;
 
@@ -108,7 +109,7 @@ CharacterDrawSystem::CharacterDrawSystem(GLFWwindow* _window, entt::registry& _w
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	characters = world.view<CompCharacter>();
+	characters = world.view<CompCharacter, CompColor>();
 	initialized = true;
 }
 
@@ -125,7 +126,7 @@ void CharacterDrawSystem::update() {
 	program.setUniform(uProjectionMatrix, projection);
 
 	glBindVertexArray(vao);
-	for (auto [entity, character] : characters.each()) {
+	for (auto [entity, character, color] : characters.each()) {
 		program.setUniform(uPosition, glm::vec3(character.position, 0.0f));
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
@@ -140,7 +141,12 @@ void snapshotMergeSystem(DefaultSnapshotBuffer& buffer, NetworkContext* context)
 
 		if (context->clients[id].getId() == NULL_CLIENT) {
 			context->clients[id].setId(id);
-			entt::entity player = spawnCharacter(context->world, buffer[i]->position);
+			
+			entt::entity player = spawnCharacter(
+				context->world, 
+				buffer[i]->position,
+				(id == context->localId ? COLOR_RED : COLOR_WHITE));
+			
 			context->clients[id].setPlayer(player);
 		}
 		else {
