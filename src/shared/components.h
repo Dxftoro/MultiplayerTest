@@ -7,7 +7,7 @@
 #include "snapshot_buffer.h"
 
 struct CompCharacter {
-	static constexpr float speed = 1.0f;
+	static constexpr float speed = 2.0f;
 
 	//glm::vec2 position, velocity, direction;
 	glm::vec2 position;
@@ -21,7 +21,7 @@ struct CompColor {
 
 struct CompNetworkId {
 	id_t id = NULL_CLIENT;
-	bool isLocal = false;
+	bool isLocal = false, isNew = true;
 };
 
 //void characterMovementSystem(entt::registry& world, float deltaTime) {

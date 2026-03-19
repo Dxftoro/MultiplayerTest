@@ -3,6 +3,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <ctime>
 #include "stdint.h"
 
 #include <enet/enet.h>
@@ -36,6 +37,12 @@ entt::entity createPlayer(entt::registry& world, const glm::vec2& position, id_t
 	return player;
 }
 
+void removePlayer(entt::registry& world, entt::entity player) {
+	world.erase<CompCharacter>(player);
+	world.erase<CompNetworkId>(player);
+	std::println("Player removed.");
+}
+
 void clientConnected(Network* network, NetworkPeer peer, void* data) {
 	NetworkContext* context = (NetworkContext*)data;
 	const ClientData& newClient = context->clients.add(ClientData(peer));
@@ -56,8 +63,12 @@ void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
 	ClientData* clientData = (ClientData*)peer.getData();
 	id_t clientId = clientData->getId();
 
+	removePlayer(context->world, clientData->getPlayer());
 	context->clients.remove(clientId);
 	peer.invalidate();
+
+	ClientDisconnectedPacket packet(clientId);
+	network->broadcast(packet);
 
 	id_t size = context->clients.size();
 	std::println("Client [{0}] disconnected! Server size: {1}", clientId, size);
@@ -66,13 +77,13 @@ void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
 void snapshotMergeSystem(NetworkContext& context) {
 	context.world.view<CompNetworkId, CompCharacter>()
 	.each([&context](entt::entity, CompNetworkId& networkId, CompCharacter& character) {
-		if (!character.dirty) return;
-		character.dirty = false;
+		//if (!character.dirty) return;
+		//character.dirty = false;
 
 		SnapshotObject object(networkId.id, character.position, (CompCharacter::State)character.state);
 		context.snapshotBuffer.add(object);
-		std::println("Added object with ID: {}",
-			context.snapshotBuffer[context.snapshotBuffer.size() - 1]->id);
+		//std::println("Added object with ID: {}",
+		//	context.snapshotBuffer[context.snapshotBuffer.size() - 1]->id);
 	});
 
 	ServerSnapshotHeader snapshotHeader(context.snapshotBuffer.size());
@@ -80,13 +91,13 @@ void snapshotMergeSystem(NetworkContext& context) {
 }
 
 void sendSnapshot(Network& network, NetworkContext& context) {
-	for (id_t i = 0; i < context.clients.size(); i++) {
-		if (context.clients[i].isNull()) continue;
-		network.sendTo(
-			context.clients[i].getPeer(),
-			context.snapshotBuffer.getData(),
-			context.snapshotBuffer.sizeBytes());
-	}
+	network.broadcast(context.snapshotBuffer.getData(), context.snapshotBuffer.sizeBytes());
+}
+
+void moveCharacterByWishDir(entt::registry& world, entt::entity player, WishDir wishDir, float tickTime) {
+	CompCharacter& character = world.get<CompCharacter>(player);
+	glm::vec2 velocity = glm::vec2((float)wishDir.x, (float)wishDir.y) * CompCharacter::speed;
+	character.position += velocity;
 }
 
 int main() {
@@ -105,10 +116,8 @@ int main() {
 		std::println("{0}", exc.what());
 	}
 
+	srand(time(0));
 	bool running = true;
-	int fpsLimit = 70;
-	float frameDuration = 1000.0f / fpsLimit;
-
 	const float tps = 30.0f;
 	const float tickTime = 1.0f / tps;
 	float accumulator = 0.0f;
@@ -121,6 +130,26 @@ int main() {
 		beg = end;
 
 		network.poll();
+		network.getMessageBuffer()->each<[](NetworkMessage& message, void* data) {
+			NetworkContext* context = (NetworkContext*)data;
+			UnknownPacket* packet = message.getPacket().data<UnknownPacket>();
+
+			switch (packet->getType()) {
+			case PacketType::CLIENT_MOVEMENT: {
+				ClientMovementPacket* movementPacket = (ClientMovementPacket*)packet;
+				ClientData* clientData = (ClientData*)message.getSender().getData();
+				moveCharacterByWishDir(
+					context->world,
+					clientData->getPlayer(),
+					movementPacket->getWishDir(),
+					1 / 30.0f);
+				break;
+			}
+			default:
+				std::println("Received an unexpected packet type!");
+				break;
+			}
+		}>();
 
 		accumulator += elapsedTime.count();
 		while (accumulator >= tickTime) {
@@ -130,7 +159,7 @@ int main() {
 			//std::println("Snapshot size: {}", context.snapshotBuffer.size());
 
 			if (context.snapshotBuffer.size()) {
-				context.snapshotBuffer.dump();
+				//context.snapshotBuffer.dump();
 				//std::println("Something happened! Sending snapshot. Size: {}", 
 				//	context.snapshotBuffer.size());
 				sendSnapshot(network, context);

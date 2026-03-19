@@ -22,7 +22,7 @@ target_include_directories(client PRIVATE
 
 find_package(OpenGL REQUIRED)
 add_library(glfw STATIC IMPORTED)
-set(GLFW_DIR "D:/Documents/libraries/glfw-3.4.bin.WIN64")
+set(GLFW_DIR "E:/CppFiles/glfw-3.4.bin.WIN64")
 
 set_target_properties(
 	glfw PROPERTIES

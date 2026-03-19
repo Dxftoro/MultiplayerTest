@@ -40,6 +40,11 @@ entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position, co
 	return entity;
 }
 
+void removeCharacter(entt::registry& world, entt::entity player) {
+	world.erase<CompCharacter>(player);
+	world.erase<CompColor>(player);
+}
+
 struct NetworkContext {
 	Network* network;
 	id_t localId;
@@ -138,13 +143,12 @@ void CharacterDrawSystem::update() {
 }
 
 void snapshotMergeSystem(DefaultSnapshotBuffer& buffer, NetworkContext* context) {
-	buffer.dump();
+	//buffer.dump();
 
 	for (id_t i = 0; i < buffer.size(); i++) {
 		id_t id = buffer[i]->id;
 
 		if (context->clients[id].getId() == NULL_CLIENT) {
-			std::println("New");
 			context->clients[id].setId(id);
 			
 			entt::entity player = spawnCharacter(
@@ -155,12 +159,22 @@ void snapshotMergeSystem(DefaultSnapshotBuffer& buffer, NetworkContext* context)
 			context->clients[id].setPlayer(player);
 		}
 		else {
-			std::println("Updating old");
 			entt::entity player = context->clients[id].getPlayer();
 			CompCharacter& character = context->world.get<CompCharacter>(player);
 			character.position = buffer[i]->position;
 		}
 	}
+}
+
+void inputSystem(GLFWwindow* window, Network& network) {
+	int A = glfwGetKey(window, GLFW_KEY_A);
+	int D = glfwGetKey(window, GLFW_KEY_D);
+	int W = glfwGetKey(window, GLFW_KEY_W);
+	int S = glfwGetKey(window, GLFW_KEY_S);
+	WishDir wishDir((char)(-A + D), (char)(-W + S));
+
+	ClientMovementPacket movementPacket(wishDir);
+	network.send(movementPacket);
 }
 
 int main() {
@@ -209,7 +223,9 @@ int main() {
 		std::chrono::duration<float> elapsedTime = end - beg;
 		beg = end;
 
+		inputSystem(window, network);
 		network.poll();
+
 		messages->each<[](NetworkMessage& message, void* data) {
 			NetworkContext* context = (NetworkContext*)data;
 			UnknownPacket* packet = message.getPacket().data<UnknownPacket>();
@@ -225,6 +241,16 @@ int main() {
 				
 				context->localId = hello->getClientId();
 				context->clients = std::vector<ClientData>(hello->getServerSize());
+				break;
+			}
+			case PacketType::CLIENT_DISCONNECTED: {
+				ClientDisconnectedPacket* disconnected = (ClientDisconnectedPacket*)packet;
+
+				std::println("Received client disconnected. ID: {}", disconnected->getClientId());
+
+				entt::entity player = context->clients[disconnected->getClientId()].getPlayer();
+				removeCharacter(context->world, player);
+				context->clients[disconnected->getClientId()].setId(NULL_CLIENT);
 				break;
 			}
 			case PacketType::SERVER_SNAPSHOT_HEADER: {

@@ -5,7 +5,9 @@
 enum class PacketType : uint8_t {
 	UNKNOWN,
 	SERVER_HELLO,
-	SERVER_SNAPSHOT_HEADER
+	SERVER_SNAPSHOT_HEADER,
+	CLIENT_MOVEMENT,
+	CLIENT_DISCONNECTED
 };
 
 template <PacketType Type>

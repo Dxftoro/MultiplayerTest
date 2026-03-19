@@ -66,7 +66,7 @@ SnapshotBuffer<ServerSize>::SnapshotBuffer() : current(0) {
 template <id_t ServerSize>
 SnapshotBuffer<ServerSize>::SnapshotBuffer(char* _buffer) : buffer(_buffer) {
 	current = getHeader()->getSnapshotSize();
-	std::println("Received snapshot. Size: {}", current);
+	//std::println("Received snapshot. Size: {}", current);
 	objects = getFirstObject();
 }
 

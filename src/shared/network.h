@@ -106,7 +106,6 @@ void NetworkMessageBuffer::each() {
 	size_t i = 0;
 	for (i = 0; i < size(); i++) {
 		Func(messages[i], context);
-		std::println("Releasing {}", i);
 		messages[i].release();
 	}
 }
@@ -255,7 +254,6 @@ void Network::disconnect() {
 
 void Network::poll() {
 	if (!connected) return;
-	//std::println("Doing poll...");
 
 	messageBuffer->reset();
 	ENetEvent event;

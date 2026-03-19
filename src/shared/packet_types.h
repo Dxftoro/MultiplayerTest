@@ -2,6 +2,7 @@
 
 #include "maindef.h"
 #include "packet_base.h"
+#include <glm/glm.hpp>
 
 class UnknownPacket : public Packet<PacketType::UNKNOWN> {
 public:
@@ -31,4 +32,28 @@ public:
 	ServerSnapshotHeader(id_t _snapshotSize) : snapshotSize(_snapshotSize) {}
 
 	id_t getSnapshotSize() const { return snapshotSize; }
+};
+
+using WishDir = glm::vec<2, char>;
+
+class ClientMovementPacket : public Packet<PacketType::CLIENT_MOVEMENT> {
+private:
+	WishDir wishDir;
+
+public:
+	ClientMovementPacket() : wishDir(0) {}
+	ClientMovementPacket(WishDir _wishDir) : wishDir(_wishDir) {}
+
+	WishDir getWishDir() const { return wishDir; }
+};
+
+class ClientDisconnectedPacket : public Packet<PacketType::CLIENT_DISCONNECTED> {
+private:
+	id_t clientId;
+
+public:
+	ClientDisconnectedPacket() : clientId(NULL_CLIENT) {}
+	ClientDisconnectedPacket(id_t _clientId) : clientId(_clientId) {}
+
+	id_t getClientId() const { return clientId; }
 };
