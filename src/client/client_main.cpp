@@ -19,12 +19,8 @@
 
 #define S_WIDTH			480
 #define S_HEIGHT		480
-#define SERVER_SIZE		10
 #define COLOR_WHITE		glm::vec3(1.0f, 1.0f, 1.0f)
 #define COLOR_RED		glm::vec3(1.0f, 0.0f, 0.0f)
-
-using DefaultSnapshotBuffer = SnapshotBuffer<SERVER_SIZE>;
-using DefaultClientStorage = ClientStorage<SERVER_SIZE>;
 
 float verticies[] = {
 	-1.0f, 1.0f,
@@ -142,7 +138,7 @@ void CharacterDrawSystem::update() {
 	glfwPollEvents();
 }
 
-void snapshotMergeSystem(DefaultSnapshotBuffer& buffer, NetworkContext* context) {
+void snapshotMergeSystem(SnapshotBuffer& buffer, NetworkContext* context) {
 	//buffer.dump();
 
 	for (id_t i = 0; i < buffer.size(); i++) {
@@ -192,7 +188,7 @@ int main() {
 	while (!network.isConnected()) {
 		try {
 			std::println("Trying to connect to the server...");
-			network.connect("127.0.0.1", 27015);
+			network.connect("26.70.26.159", 27015);
 			std::println("Connection succeded!");
 		}
 		catch (NetworkException exc) {
@@ -254,7 +250,7 @@ int main() {
 				break;
 			}
 			case PacketType::SERVER_SNAPSHOT_HEADER: {
-				DefaultSnapshotBuffer buffer((char*)message.getPacket().getData());
+				SnapshotBuffer buffer((char*)message.getPacket().getData());
 				snapshotMergeSystem(buffer, context);
 				buffer.invalidate();
 				break;

@@ -2,6 +2,7 @@
 
 #include "maindef.h"
 #include "packet_base.h"
+
 #include <glm/glm.hpp>
 
 class UnknownPacket : public Packet<PacketType::UNKNOWN> {
@@ -26,12 +27,14 @@ public:
 class ServerSnapshotHeader : public Packet<PacketType::SERVER_SNAPSHOT_HEADER> {
 private:
 	id_t snapshotSize;
+	time_t timestamp;
 
 public:
-	ServerSnapshotHeader() : snapshotSize(0) {}
-	ServerSnapshotHeader(id_t _snapshotSize) : snapshotSize(_snapshotSize) {}
+	ServerSnapshotHeader() : snapshotSize(0), timestamp(time::now()) {}
+	ServerSnapshotHeader(id_t _snapshotSize) : snapshotSize(_snapshotSize), timestamp(time::now()) {}
 
 	id_t getSnapshotSize() const { return snapshotSize; }
+	time_t getTimestamp() const { return timestamp; }
 };
 
 using WishDir = glm::vec<2, char>;

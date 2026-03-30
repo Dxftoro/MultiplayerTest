@@ -12,12 +12,13 @@ struct SnapshotObject {
 		: id(_id), position(_position), state(_state) {}
 };
 
-template <id_t ServerSize>
+/* Maybe try to make this as something called a "Snapshot" */
 class SnapshotBuffer {
 private:
+	/* And this to be a "SnapshotBuffer" */
 	char* buffer;
 	SnapshotObject* objects;
-	id_t current;
+	id_t current, _capacity;
 
 	SnapshotBuffer(const SnapshotBuffer&) = delete;
 	SnapshotBuffer(SnapshotBuffer&&) = delete;
@@ -25,12 +26,12 @@ private:
 	SnapshotObject* getFirstObject() const { return (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader)); }
 
 public:
-	explicit SnapshotBuffer();
+	explicit SnapshotBuffer(id_t capacity);
 	explicit SnapshotBuffer(char* buffer);
 	~SnapshotBuffer();
 
-	static constexpr id_t capacity() { return ServerSize; }
-	static constexpr size_t capacityBytes();
+	id_t capacity() const { return _capacity; }
+	size_t capacityBytes() const;
 	id_t size() const { return current; }
 	size_t sizeBytes() const;
 
@@ -47,54 +48,45 @@ public:
 	inline SnapshotObject* operator[](id_t index) const { return get(index); }
 };
 
-template <id_t ServerSize>
-constexpr size_t SnapshotBuffer<ServerSize>::capacityBytes() {
-	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * ServerSize;
+size_t SnapshotBuffer::capacityBytes() const {
+	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * _capacity;
 }
 
-template <id_t ServerSize>
-size_t SnapshotBuffer<ServerSize>::sizeBytes() const {
+size_t SnapshotBuffer::sizeBytes() const {
 	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * current;
 }
 
-template <id_t ServerSize>
-SnapshotBuffer<ServerSize>::SnapshotBuffer() : current(0) {
+SnapshotBuffer::SnapshotBuffer(id_t capacity) : _capacity(capacity), current(0) {
 	buffer = new char[capacityBytes()];
 	objects = getFirstObject();
 }
 
-template <id_t ServerSize>
-SnapshotBuffer<ServerSize>::SnapshotBuffer(char* _buffer) : buffer(_buffer) {
+SnapshotBuffer::SnapshotBuffer(char* _buffer) : buffer(_buffer) {
 	current = getHeader()->getSnapshotSize();
-	//std::println("Received snapshot. Size: {}", current);
+	_capacity = current;
 	objects = getFirstObject();
 }
 
-template <id_t ServerSize>
-SnapshotBuffer<ServerSize>::~SnapshotBuffer() {
+SnapshotBuffer::~SnapshotBuffer() {
 	if (buffer) delete[] buffer;
 }
 
-template <id_t ServerSize>
-void SnapshotBuffer<ServerSize>::setHeader(const ServerSnapshotHeader& header) {
+void SnapshotBuffer::setHeader(const ServerSnapshotHeader& header) {
 	memcpy(buffer, &header, sizeof(header));
 }
 
-template <id_t ServerSize>
-void SnapshotBuffer<ServerSize>::add(const SnapshotObject& object) {
-	if (current >= ServerSize) throw std::runtime_error("SnapshotBuffer index out of bounds!");
+void SnapshotBuffer::add(const SnapshotObject& object) {
+	if (current >= _capacity) throw std::runtime_error("SnapshotBuffer index out of bounds!");
 	objects[current] = object;
 	current++;
 }
 
-template <id_t ServerSize>
-void SnapshotBuffer<ServerSize>::invalidate() {
+void SnapshotBuffer::invalidate() {
 	buffer = nullptr;
 	objects = nullptr;
 }
 
-template <id_t ServerSize>
-void SnapshotBuffer<ServerSize>::dump() {
+void SnapshotBuffer::dump() {
 	std::println("Buffer size: {}", size());
 	for (id_t i = 0; i < size(); i++) {
 		id_t id = (objects + i)->id;
@@ -102,7 +94,6 @@ void SnapshotBuffer<ServerSize>::dump() {
 	}
 }
 
-template <id_t ServerSize>
-SnapshotObject* SnapshotBuffer<ServerSize>::get(id_t index) const {
+SnapshotObject* SnapshotBuffer::get(id_t index) const {
 	return objects + index;
 }

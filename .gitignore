@@ -5,3 +5,4 @@ packages/
 
 # Files
 *.user
+CMakeSettings.json
