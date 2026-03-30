@@ -117,7 +117,7 @@ int main() {
 		std::println("{0}", exc.what());
 	}
 
-	srand(time(0));
+	srand(std::time(0));
 	bool running = true;
 	const float tps = 30.0f;
 	const float tickTime = 1.0f / tps;

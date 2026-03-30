@@ -30,8 +30,8 @@ private:
 	time_t timestamp;
 
 public:
-	ServerSnapshotHeader() : snapshotSize(0), timestamp(time::now()) {}
-	ServerSnapshotHeader(id_t _snapshotSize) : snapshotSize(_snapshotSize), timestamp(time::now()) {}
+	ServerSnapshotHeader() : snapshotSize(0), timestamp(utime::now()) {}
+	ServerSnapshotHeader(id_t _snapshotSize) : snapshotSize(_snapshotSize), timestamp(utime::now()) {}
 
 	id_t getSnapshotSize() const { return snapshotSize; }
 	time_t getTimestamp() const { return timestamp; }

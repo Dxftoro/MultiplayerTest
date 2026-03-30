@@ -8,10 +8,10 @@
 
 struct SnapshotPair {
 	SnapshotBuffer a, b;
-	time_t delay;
+	float t;
 
-	SnaphostPair(char* aBuffer, char* bBuffer, time_t _delay)
-	:	a(aBuffer), b(bBuffer), delay(_delay) {}
+	SnaphostPair(char* aBuffer, char* bBuffer, float tKoeff)
+	:	a(aBuffer), b(bBuffer), t(tKoeff) {}
 };
 
 template <size_t Size>
@@ -22,13 +22,15 @@ private:
 	std::array<char*, Size> buffers;
 
 public:
-	static constexpr time_t INTERPOLATION_DELAY = 5;
+	static constexpr time_t INTERPOLATION_OFFSET =  100;
 
 	SnapshotPool(id_t snapshotSize);
 	~SnapshotPool();
 
 	size_t size() const { return current; }
 	void push(const SnapshotBuffer& snapshot);
+	void reset() { current = 0; }
+
 	std::optional<SnapshotPair> getInterpolationPair(time_t now) const;
 };
 
@@ -49,8 +51,42 @@ void SnapshotPool<Size>::push(const SnapshotBuffer& snapshot) {
 }
 
 template <size_t Size>
-std::optional<SnapshotPair> SnapshotPool<Size>::getInterpolationPair() const {
+std::optional<SnapshotPair> SnapshotPool<Size>::getInterpolationPair(time_t now) const {
 	if (size() < 2) { std::nullopt; }
 
-	return std::nullopt;
+	time_t shifted = now - INTERPOLATION_OFFSET;
+	size_t fromIndex = 0, toIndex = size() - 1;
+
+	for (size_t i = size() - 1; i >= 0; i--) {
+		SnapshotBuffer snapshot(buffers[i]);
+		if (shifted - snapshot.getHeader()->getTimestamp() > 0) {
+			fromIndex = i;
+			snapshot.invalidate();
+			break;
+		}
+		snapshot.invalidate();
+	}
+
+	for (size_t i = 0; i < size(); i++) {
+		SnapshotBuffer snapshot(buffers[i]);
+		if (shifted - snapshot.getHeader()->getTimestamp() < 0) {
+			toIndex = i;
+			snapshot.invalidate();
+			break;
+		}
+		snapshot.invalidate();
+	}
+
+	if (fromIndex == toIndex) {
+		if (toIndex == 0) return SnapshotPair(buffers[0], buffers[0], 1.0f);
+		if (toIndex == size() - 1) return std::nullopt;
+	}
+	reset();
+	
+	SnapshotPair pair(buffers[fromIndex], buffers[toIndex], 0.0f);
+	time_t from = pair.a.getHeader()->getTimestamp();
+	time_t to = pair.b.getHeader()->getTimestamp();
+	pair.t = (float)(shifted - from) / (float)(to - from);
+
+	return return pair;
 }
