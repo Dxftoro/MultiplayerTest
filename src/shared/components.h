@@ -10,8 +10,14 @@ struct CompCharacter {
 	static constexpr float speed = 2.0f;
 
 	//glm::vec2 position, velocity, direction;
+	
 	glm::vec2 position;
-	enum State { IDLE, MOVING } state;
+	
+	enum State {
+		IDLE,
+		MOVING
+	} state = State::IDLE;
+	
 	bool dirty = true;
 };
 

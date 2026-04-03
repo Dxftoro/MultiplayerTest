@@ -26,8 +26,8 @@ private:
 	SnapshotObject* getFirstObject() const { return (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader)); }
 
 public:
-	explicit SnapshotBuffer(id_t capacity);
-	explicit SnapshotBuffer(char* buffer);
+	SnapshotBuffer(id_t capacity);
+	SnapshotBuffer(char* buffer);
 	~SnapshotBuffer();
 
 	id_t capacity() const { return _capacity; }

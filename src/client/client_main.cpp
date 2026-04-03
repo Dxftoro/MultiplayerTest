@@ -13,6 +13,7 @@
 #include "network.h"
 #include "packet_types.h"
 #include "snapshot_buffer.h"
+#include "snapshot_pool.h"
 #include "client_storage.h"
 #include "components.h"
 #include "glsl_program.h"
@@ -21,6 +22,8 @@
 #define S_HEIGHT		480
 #define COLOR_WHITE		glm::vec3(1.0f, 1.0f, 1.0f)
 #define COLOR_RED		glm::vec3(1.0f, 0.0f, 0.0f)
+
+//using DefaultSnapshotPool = SnapshotPool<30>;
 
 float verticies[] = {
 	-1.0f, 1.0f,
@@ -46,6 +49,7 @@ struct NetworkContext {
 	id_t localId;
 	entt::registry world;
 	std::vector<ClientData> clients;
+	//DefaultSnapshotPool snapshotPool;
 };
 
 class CharacterDrawSystem {
@@ -139,8 +143,6 @@ void CharacterDrawSystem::update() {
 }
 
 void snapshotMergeSystem(SnapshotBuffer& buffer, NetworkContext* context) {
-	//buffer.dump();
-
 	for (id_t i = 0; i < buffer.size(); i++) {
 		id_t id = buffer[i]->id;
 
@@ -178,8 +180,8 @@ int main() {
 	NetworkMessageBuffer* messages = network.getMessageBuffer();
 	
 	NetworkContext context = {
-		.network	= &network,
-		.localId	= NULL_CLIENT
+		.network		= &network,
+		.localId		= NULL_CLIENT
 	};
 	network.setContext(&context);
 
@@ -188,7 +190,7 @@ int main() {
 	while (!network.isConnected()) {
 		try {
 			std::println("Trying to connect to the server...");
-			network.connect("26.70.26.159", 27015);
+			network.connect("127.0.0.1", 27015);
 			std::println("Connection succeded!");
 		}
 		catch (NetworkException exc) {
@@ -251,7 +253,9 @@ int main() {
 			}
 			case PacketType::SERVER_SNAPSHOT_HEADER: {
 				SnapshotBuffer buffer((char*)message.getPacket().getData());
-				snapshotMergeSystem(buffer, context);
+				//context->snapshotPool.push(buffer);
+				//snapshotMergeSystem(buffer, context);
+
 				buffer.invalidate();
 				break;
 			}

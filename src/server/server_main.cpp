@@ -110,7 +110,7 @@ int main() {
 	network.onDisconnectReceived(clientDisconnected);
 
 	try {
-		network.host("26.70.26.159", 27015);
+		network.host("127.0.0.1", 27015);
 		std::println("Server hosted!");
 	}
 	catch (NetworkException exc) {

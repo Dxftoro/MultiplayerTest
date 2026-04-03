@@ -10,8 +10,7 @@ struct SnapshotPair {
 	SnapshotBuffer a, b;
 	float t;
 
-	SnaphostPair(char* aBuffer, char* bBuffer, float tKoeff)
-	:	a(aBuffer), b(bBuffer), t(tKoeff) {}
+	SnaphostPair(char* aBuffer, char* bBuffer, float tKoeff) : a(aBuffer), b(bBuffer), t(tKoeff) {}
 };
 
 template <size_t Size>
@@ -24,19 +23,30 @@ private:
 public:
 	static constexpr time_t INTERPOLATION_OFFSET =  100;
 
+	SnapshotPool();
 	SnapshotPool(id_t snapshotSize);
 	~SnapshotPool();
 
 	size_t size() const { return current; }
 	void push(const SnapshotBuffer& snapshot);
+	void push(char* rawBuffer);
 	void reset() { current = 0; }
 
-	std::optional<SnapshotPair> getInterpolationPair(time_t now) const;
+	std::optional<SnapshotPair> getInterpolationPair(time_t now);
 };
 
 template <size_t Size>
+SnapshotPool<Size>::SnapshotPool() : snapshotSize(0), current(0) {
+	if (!buffers[0]) std::println("Buffer is already nullptr");
+	memset(&buffers[0], NULL, Size);
+}
+
+template <size_t Size>
 SnapshotPool<Size>::SnapshotPool(id_t _snapshotSize) : snapshotSize(_snapshotSize), current(0) {
-	for (char* buffer : buffers) buffer = new char[snapshotSize];
+	for (char* buffer : buffers) {
+		if (buffer) delete[] buffer;
+		buffer = new char[snapshotSize];
+	}
 }
 
 template <size_t Size>
@@ -46,12 +56,19 @@ SnapshotPool<Size>::~SnapshotPool() {
 
 template <size_t Size>
 void SnapshotPool<Size>::push(const SnapshotBuffer& snapshot) {
+	std::println("Pushing at {}", current);
 	memcpy(buffers[current], snapshot.getData(), current);
 	current = (current + 1) % Size;
 }
 
 template <size_t Size>
-std::optional<SnapshotPair> SnapshotPool<Size>::getInterpolationPair(time_t now) const {
+void SnapshotPool<Size>::push(char* buffer) {
+	memcpy(buffers[current], buffer, current);
+	current = (current + 1) % Size;
+}
+
+template <size_t Size>
+std::optional<SnapshotPair> SnapshotPool<Size>::getInterpolationPair(time_t now) {
 	if (size() < 2) { std::nullopt; }
 
 	time_t shifted = now - INTERPOLATION_OFFSET;
@@ -88,5 +105,5 @@ std::optional<SnapshotPair> SnapshotPool<Size>::getInterpolationPair(time_t now)
 	time_t to = pair.b.getHeader()->getTimestamp();
 	pair.t = (float)(shifted - from) / (float)(to - from);
 
-	return return pair;
+	return pair;
 }

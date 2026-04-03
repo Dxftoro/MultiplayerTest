@@ -24,12 +24,12 @@ namespace utime {
 	template<> std::time_t from<milliseconds>(std::time_t t) { return t * 1000; }
 	template<> std::time_t from<seconds>(std::time_t t) { return t * 1000000; }
 	template<> std::time_t from<minutes>(std::time_t t) { return t * 1000000 * 60; }
-	template<> std::time_t from<hours>(std::time_t t) { return t * 1000000 * 3600; }
+	template<> std::time_t from<hours>(std::time_t t) { return t * 1000000ll * 3600; }
 
 	/* Time conversion from microseconds to X */
 	template<typename T> std::time_t to(std::time_t t);
 	template<> std::time_t to<milliseconds>(std::time_t t) { return t / 1000; }
 	template<> std::time_t to<seconds>(std::time_t t) { return t / 1000000; }
 	template<> std::time_t to<minutes>(std::time_t t) { return t / (1000000 * 60); }
-	template<> std::time_t to<hours>(std::time_t t) { return t / (1000000 * 3600); }
+	template<> std::time_t to<hours>(std::time_t t) { return t / (1000000ll * 3600); }
 }
