@@ -10,7 +10,8 @@ struct SnapshotPair {
 	SnapshotBuffer a, b;
 	float t;
 
-	SnaphostPair(char* aBuffer, char* bBuffer, float tKoeff) : a(aBuffer), b(bBuffer), t(tKoeff) {}
+	SnapshotPair(char* aBuffer, char* bBuffer, float tKoeff)
+		: a(aBuffer), b(bBuffer), t(tKoeff) { }
 };
 
 template <size_t Size>
