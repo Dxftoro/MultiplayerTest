@@ -23,7 +23,7 @@
 #define COLOR_WHITE		glm::vec3(1.0f, 1.0f, 1.0f)
 #define COLOR_RED		glm::vec3(1.0f, 0.0f, 0.0f)
 
-//using DefaultSnapshotPool = SnapshotPool<30>;
+using DefaultSnapshotPool = SnapshotPool<30>;
 
 float verticies[] = {
 	-1.0f, 1.0f,
@@ -33,6 +33,7 @@ float verticies[] = {
 };
 
 entt::entity spawnCharacter(entt::registry& world, const glm::vec2& position, const glm::vec3& color) {
+	std::println("Spawning character");
 	entt::entity entity = world.create();
 	world.emplace<CompCharacter>(entity).position = position;
 	world.emplace<CompColor>(entity).color = color;
@@ -49,7 +50,7 @@ struct NetworkContext {
 	id_t localId;
 	entt::registry world;
 	std::vector<ClientData> clients;
-	//DefaultSnapshotPool snapshotPool;
+	DefaultSnapshotPool snapshotPool;
 };
 
 class CharacterDrawSystem {
@@ -146,6 +147,8 @@ void snapshotMergeSystem(SnapshotBuffer& buffer, NetworkContext* context) {
 	for (id_t i = 0; i < buffer.size(); i++) {
 		id_t id = buffer[i]->id;
 
+		//if (id >= context->clients.size()) continue;
+
 		if (context->clients[id].getId() == NULL_CLIENT) {
 			context->clients[id].setId(id);
 			
@@ -164,6 +167,51 @@ void snapshotMergeSystem(SnapshotBuffer& buffer, NetworkContext* context) {
 	}
 }
 
+struct Test {
+	int a, b;
+	float t;
+
+	Test(int _a, int _b, float _t) : a(_a), b(_b), t(_t) {}
+	~Test() { std::println("Test destructor"); }
+
+	void dump() { std::println("{0}, {1}, {2}", a, b, t); }
+};
+
+std::optional<Test> testOpt() {
+	std::optional<Test> test(std::in_place, 1, 2, 3.0f);
+	return test;
+}
+
+void interpolateSnapshots(DefaultSnapshotPool& snapshotPool, NetworkContext* context) {
+	std::optional<SnapshotPair> pair = snapshotPool.getInterpolationPair(utime::now());
+	if (!pair) return;
+
+	snapshotMergeSystem(pair->a, context);
+	if (pair->a.getData() == pair->b.getData()) return;
+
+	for (id_t i = 0; i < pair->b.size(); i++) {
+		id_t id = pair->b[i]->id;
+
+		//if (id >= context->clients.size()) continue;
+
+		if (context->clients[id].getId() == NULL_CLIENT) {
+			context->clients[id].setId(id);
+
+			entt::entity player = spawnCharacter(
+				context->world,
+				pair->b[i]->position,
+				(id == context->localId ? COLOR_RED : COLOR_WHITE));
+
+			context->clients[id].setPlayer(player);
+		}
+		else {
+			entt::entity player = context->clients[id].getPlayer();
+			CompCharacter& character = context->world.get<CompCharacter>(player);
+			character.position = glm::mix(character.position, pair->b[i]->position, pair->t);
+		}
+	}
+}
+
 void inputSystem(GLFWwindow* window, Network& network) {
 	int A = glfwGetKey(window, GLFW_KEY_A);
 	int D = glfwGetKey(window, GLFW_KEY_D);
@@ -173,6 +221,13 @@ void inputSystem(GLFWwindow* window, Network& network) {
 
 	ClientMovementPacket movementPacket(wishDir);
 	network.send(movementPacket);
+}
+
+void countFps(GLFWwindow* window, float& elapsedTime) {
+	while (!glfwWindowShouldClose(window)) {
+		//std::println("FPS: {}", (1.0f / elapsedTime));
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
+	}
 }
 
 int main() {
@@ -214,11 +269,15 @@ int main() {
 
 	int fpsLimit = 70;
 	float frameDuration = 1000.0f / fpsLimit;
+	float elapsedTime = 1.0f;
+
+	std::thread fpsCounter(countFps, window, std::ref(elapsedTime));
 
 	while (!glfwWindowShouldClose(window)) {
 		end = std::chrono::steady_clock::now();
 		timePoint frameEnd = end + std::chrono::milliseconds(1000 / fpsLimit);
-		std::chrono::duration<float> elapsedTime = end - beg;
+		std::chrono::duration<float> diff = end - beg;
+		elapsedTime = diff.count();
 		beg = end;
 
 		inputSystem(window, network);
@@ -239,6 +298,7 @@ int main() {
 				
 				context->localId = hello->getClientId();
 				context->clients = std::vector<ClientData>(hello->getServerSize());
+				context->snapshotPool.init(hello->getServerSize());
 				break;
 			}
 			case PacketType::CLIENT_DISCONNECTED: {
@@ -252,11 +312,10 @@ int main() {
 				break;
 			}
 			case PacketType::SERVER_SNAPSHOT_HEADER: {
-				SnapshotBuffer buffer((char*)message.getPacket().getData());
-				//context->snapshotPool.push(buffer);
-				//snapshotMergeSystem(buffer, context);
+				context->snapshotPool.push((char*)message.getPacket().getData());
 
-				buffer.invalidate();
+				//SnapshotBuffer buffer((char*)message.getPacket().getData());
+				//snapshotMergeSystem(buffer, context);
 				break;
 			}
 			default:
@@ -265,12 +324,14 @@ int main() {
 			}
 		}>();
 
+		interpolateSnapshots(context.snapshotPool, &context);
 		characterDrawSystem.update();
 
 		std::this_thread::sleep_until(frameEnd);
 	}
 
 	network.disconnect();
+	fpsCounter.join();
 
 	glfwTerminate();
 	enet_deinitialize();

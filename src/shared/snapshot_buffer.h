@@ -19,9 +19,7 @@ private:
 	char* buffer;
 	SnapshotObject* objects;
 	id_t current, _capacity;
-
-	SnapshotBuffer(const SnapshotBuffer&) = delete;
-	SnapshotBuffer(SnapshotBuffer&&) = delete;
+	bool copy;
 
 	SnapshotObject* getFirstObject() const { return (SnapshotObject*)(buffer + sizeof(ServerSnapshotHeader)); }
 
@@ -30,10 +28,16 @@ public:
 	SnapshotBuffer(char* buffer);
 	~SnapshotBuffer();
 
+	SnapshotBuffer(const SnapshotBuffer&);
+	SnapshotBuffer(SnapshotBuffer&&) noexcept;
+
+	static size_t sCapacityBytes(id_t capacity);
+	static size_t sSizeBytes(id_t size);
+
 	id_t capacity() const { return _capacity; }
-	size_t capacityBytes() const;
+	size_t capacityBytes() const { return sCapacityBytes(_capacity); }
 	id_t size() const { return current; }
-	size_t sizeBytes() const;
+	size_t sizeBytes() const { return sSizeBytes(current); }
 
 	void setHeader(const ServerSnapshotHeader& header);
 	void add(const SnapshotObject& object);
@@ -48,27 +52,44 @@ public:
 	inline SnapshotObject* operator[](id_t index) const { return get(index); }
 };
 
-size_t SnapshotBuffer::capacityBytes() const {
-	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * _capacity;
+size_t SnapshotBuffer::sCapacityBytes(id_t capacity) {
+	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * capacity;
 }
 
-size_t SnapshotBuffer::sizeBytes() const {
-	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * current;
+size_t SnapshotBuffer::sSizeBytes(id_t size) {
+	return sizeof(ServerSnapshotHeader) + sizeof(SnapshotObject) * size;
 }
 
-SnapshotBuffer::SnapshotBuffer(id_t capacity) : _capacity(capacity), current(0) {
+SnapshotBuffer::SnapshotBuffer(id_t capacity) : _capacity(capacity), current(0), copy(false) {
 	buffer = new char[capacityBytes()];
 	objects = getFirstObject();
 }
 
-SnapshotBuffer::SnapshotBuffer(char* _buffer) : buffer(_buffer) {
+SnapshotBuffer::SnapshotBuffer(char* _buffer) : buffer(_buffer), copy(true) {
 	current = getHeader()->getSnapshotSize();
 	_capacity = current;
 	objects = getFirstObject();
 }
 
 SnapshotBuffer::~SnapshotBuffer() {
-	if (buffer) delete[] buffer;
+	if (buffer && !copy) delete[] buffer;
+}
+
+SnapshotBuffer::SnapshotBuffer(const SnapshotBuffer& buffer) : copy(true) {
+	//std::println("Buffer copy!");
+	this->buffer = buffer.buffer;
+	this->objects = buffer.objects;
+	this->current = buffer.current;
+	this->_capacity = buffer._capacity;
+}
+
+SnapshotBuffer::SnapshotBuffer(SnapshotBuffer&& buffer) noexcept : copy(false) {
+	//std::println("Buffer move!");
+	this->buffer = buffer.buffer;
+	this->objects = buffer.objects;
+	this->current = buffer.current;
+	this->_capacity = buffer._capacity;
+	buffer.invalidate();
 }
 
 void SnapshotBuffer::setHeader(const ServerSnapshotHeader& header) {

@@ -1,7 +1,18 @@
 #pragma once
 
 #include <chrono>
+
 #define NULL_CLIENT		UINT32_MAX
+#define MY_ASSERT(condition, message) \
+        do { \
+            if (!(condition)) { \
+                std::cerr << "Assertion failed: (" #condition "), " \
+                          << "message: " << message << ", " \
+                          << "file: " << __FILE__ << ", " \
+                          << "line: " << __LINE__ << std::endl; \
+                std::abort(); \
+            } \
+        } while (0)
 
 using id_t = uint32_t;
 using timePoint = std::chrono::time_point<std::chrono::steady_clock>;

@@ -160,7 +160,6 @@ int main() {
 			//std::println("Snapshot size: {}", context.snapshotBuffer.size());
 
 			if (context.snapshotBuffer.size()) {
-				//context.snapshotBuffer.dump();
 				//std::println("Something happened! Sending snapshot. Size: {}", 
 				//	context.snapshotBuffer.size());
 				sendSnapshot(network, context);
