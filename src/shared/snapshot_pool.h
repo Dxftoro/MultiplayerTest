@@ -127,15 +127,15 @@ std::optional<SnapshotPair> SnapshotPool<Size>::getInterpolationPair(time_t now)
 			return std::nullopt;
 		}
 	}
-	reset();
+	//reset();
 	
 	std::optional<SnapshotPair> pair(std::in_place, buffers[fromIndex], buffers[toIndex], 0.0f);
 	time_t from = pair->a.getHeader()->getTimestamp();
 	time_t to = pair->b.getHeader()->getTimestamp();
 	pair->t = (float)(shifted - from) / (float)(to - from);
 
-	std::println("from={}, to={}, t={}, shifted={}, now={}",
-		fromIndex, toIndex, pair->t, shifted, now);
+	//std::println("from={}, to={}, t={}, shifted={}, now={}",
+	//	fromIndex, toIndex, pair->t, shifted, now);
 
 	//std::println("Case 4");
 	return pair;
