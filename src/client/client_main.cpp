@@ -23,7 +23,7 @@
 #define COLOR_WHITE		glm::vec3(1.0f, 1.0f, 1.0f)
 #define COLOR_RED		glm::vec3(1.0f, 0.0f, 0.0f)
 
-using DefaultSnapshotPool = SnapshotPool<30>;
+using DefaultSnapshotPool = SnapshotPool<16>;
 
 float verticies[] = {
 	-1.0f, 1.0f,
