@@ -245,7 +245,7 @@ int main() {
 	while (!network.isConnected()) {
 		try {
 			std::println("Trying to connect to the server...");
-			network.connect("127.0.0.1", 27015);
+			network.connect("26.60.242.39", 27015);
 			std::println("Connection succeded!");
 		}
 		catch (NetworkException exc) {
