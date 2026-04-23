@@ -57,6 +57,9 @@ void clientConnected(Network* network, NetworkPeer peer, void* data) {
 	
 	ServerHelloPacket serverHello(newClient.getId(), SERVER_SIZE);
 	network->sendTo(peer, serverHello);
+
+	ClientConnectedPacket packet(newClient.getId());
+	network->broadcast(packet);
 }
 
 void clientDisconnected(Network* network, NetworkPeer peer, void* data) {
@@ -110,7 +113,7 @@ int main() {
 	network.onDisconnectReceived(clientDisconnected);
 
 	try {
-		network.host("26.60.242.39", 27015);
+		network.host("127.0.0.1", 27015);
 		std::println("Server hosted!");
 	}
 	catch (NetworkException exc) {

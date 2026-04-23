@@ -8,23 +8,35 @@
 
 class ClientData {
 private:
-	id_t id;
 	NetworkPeer peer;
+	id_t id;
 	entt::entity player;
+	bool disconnected;
 
 public:
-	ClientData() : id(NULL_CLIENT), peer(nullptr), player(entt::null) {}
-	explicit ClientData(NetworkPeer _peer) : id(NULL_CLIENT), peer(_peer), player(entt::null) {}
+	ClientData()
+		: id(NULL_CLIENT), peer(nullptr), player(entt::null), disconnected(false) {}
+	explicit ClientData(NetworkPeer _peer)
+		: id(NULL_CLIENT), peer(_peer), player(entt::null), disconnected(false) {}
 
 	void setId(id_t id) { this->id = id; }
 	void setPlayer(entt::entity player) { this->player = player; }
+	void setDisconnected(bool disconnected) { this->disconnected = disconnected; }
+	void clear(bool withDisconnect = false);
 
 	NetworkPeer getPeer() const { return peer; }
 	id_t getId() const { return id; }
 	entt::entity getPlayer() const { return player; }
 
 	bool isNull() const { return getId() == NULL_CLIENT; }
+	bool isDisconnected() const { return disconnected; }
 };
+
+void ClientData::clear(bool withDisconnect) {
+	id = NULL_CLIENT;
+	player = entt::null;
+	disconnected = withDisconnect;
+}
 
 template <id_t Size>
 class ClientStorage {

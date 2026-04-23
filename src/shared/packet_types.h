@@ -50,6 +50,17 @@ public:
 	WishDir getWishDir() const { return wishDir; }
 };
 
+class ClientConnectedPacket : public Packet<PacketType::CLIENT_CONNECTED> {
+private:
+	id_t clientId;
+
+public:
+	ClientConnectedPacket() : clientId(NULL_CLIENT) {}
+	ClientConnectedPacket(id_t _clientId) : clientId(_clientId) {}
+
+	id_t getClientId() const { return clientId; }
+};
+
 class ClientDisconnectedPacket : public Packet<PacketType::CLIENT_DISCONNECTED> {
 private:
 	id_t clientId;

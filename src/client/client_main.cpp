@@ -149,7 +149,7 @@ void snapshotMergeSystem(SnapshotBuffer& buffer, NetworkContext* context) {
 
 		//if (id >= context->clients.size()) continue;
 
-		if (context->clients[id].getId() == NULL_CLIENT) {
+		if (context->clients[id].isNull() && !context->clients[id].isDisconnected()) {
 			context->clients[id].setId(id);
 			
 			entt::entity player = spawnCharacter(
@@ -158,28 +158,15 @@ void snapshotMergeSystem(SnapshotBuffer& buffer, NetworkContext* context) {
 				(id == context->localId ? COLOR_RED : COLOR_WHITE));
 			
 			context->clients[id].setPlayer(player);
+			std::println("Player entity created {}", (uint32_t)player);
 		}
-		else {
+		else if (!context->clients[id].isNull() && !context->clients[id].isDisconnected()) {
 			entt::entity player = context->clients[id].getPlayer();
+			std::println("Merge, {}, {}", (uint32_t)player, player == entt::null);
 			CompCharacter& character = context->world.get<CompCharacter>(player);
 			character.position = buffer[i]->position;
 		}
 	}
-}
-
-struct Test {
-	int a, b;
-	float t;
-
-	Test(int _a, int _b, float _t) : a(_a), b(_b), t(_t) {}
-	~Test() { std::println("Test destructor"); }
-
-	void dump() { std::println("{0}, {1}, {2}", a, b, t); }
-};
-
-std::optional<Test> testOpt() {
-	std::optional<Test> test(std::in_place, 1, 2, 3.0f);
-	return test;
 }
 
 void interpolateSnapshots(DefaultSnapshotPool& snapshotPool, NetworkContext* context) {
@@ -194,17 +181,7 @@ void interpolateSnapshots(DefaultSnapshotPool& snapshotPool, NetworkContext* con
 
 		//if (id >= context->clients.size()) continue;
 
-		if (context->clients[id].getId() == NULL_CLIENT) {
-			context->clients[id].setId(id);
-
-			entt::entity player = spawnCharacter(
-				context->world,
-				pair->b[i]->position,
-				(id == context->localId ? COLOR_RED : COLOR_WHITE));
-
-			context->clients[id].setPlayer(player);
-		}
-		else {
+		if (!context->clients[id].isNull() && !context->clients[id].isDisconnected()) {
 			entt::entity player = context->clients[id].getPlayer();
 			CompCharacter& character = context->world.get<CompCharacter>(player);
 			character.position = glm::mix(character.position, pair->b[i]->position, pair->t);
@@ -245,7 +222,7 @@ int main() {
 	while (!network.isConnected()) {
 		try {
 			std::println("Trying to connect to the server...");
-			network.connect("26.60.242.39", 27015);
+			network.connect("127.0.0.1", 27015);
 			std::println("Connection succeded!");
 		}
 		catch (NetworkException exc) {
@@ -301,14 +278,27 @@ int main() {
 				context->snapshotPool.init(hello->getServerSize());
 				break;
 			}
+			case PacketType::CLIENT_CONNECTED: {
+				ClientConnectedPacket* connected = (ClientConnectedPacket*)packet;
+				id_t id = connected->getClientId();
+				if (id == context->localId) break;
+
+				std::println("Received client connected. ID: {}", id);
+
+				context->clients[id].setDisconnected(false);
+				break;
+			}
 			case PacketType::CLIENT_DISCONNECTED: {
 				ClientDisconnectedPacket* disconnected = (ClientDisconnectedPacket*)packet;
+				id_t id = disconnected->getClientId();
 
-				std::println("Received client disconnected. ID: {}", disconnected->getClientId());
+				std::println("Received client disconnected. ID: {}", id);
 
-				entt::entity player = context->clients[disconnected->getClientId()].getPlayer();
+				entt::entity player = context->clients[id].getPlayer();
 				removeCharacter(context->world, player);
-				context->clients[disconnected->getClientId()].setId(NULL_CLIENT);
+				context->world.destroy(player);
+
+				context->clients[id].clear(true);
 				break;
 			}
 			case PacketType::SERVER_SNAPSHOT_HEADER: {
