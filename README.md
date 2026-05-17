@@ -11,7 +11,7 @@ The prototype also shows a quite messy, but working client interpolation feature
 
 Building is trivial using CMake:
 ```bash
-cmake -B out # or build
+cmake -B out
 cmake --build out --config Debug # or Release
 ```
 
